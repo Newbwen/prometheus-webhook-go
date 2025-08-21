@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/Newbwen/prometheus-webhook-go/router"
 	"log"
+
+	"github.com/Newbwen/prometheus-webhook-go/router"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	r := router.InitRouter()
+	r := gin.Default()
+	router.RouterGroupApp.Init(r)
+
 	fmt.Println("Gin Webhook server listening on :8080")
 	log.Fatal(r.Run(":8080"))
 }
