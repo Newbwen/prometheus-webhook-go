@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Newbwen/prometheus-webhook-go/model"
-	"github.com/Newbwen/prometheus-webhook-go/services"
+	"github.com/Newbwen/prometheus-webhook-go/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,8 +29,14 @@ func (a *WebhookApi) HandleWebhook(c *gin.Context) {
 	}
 
 	for _, alert := range payload.Alerts {
-		if alert.Status == "firing" && alert.Labels.Alertname == "NodeDiskUsageHigh" {
-			go service.ServiceGroupApp.DiskService.HandleDiskAlert(alert.Labels.Instance)
+		if alert.Status == "firing" && alert.Labels["alertname"] == "NodeDiskUsageHigh" {
+			go service.ServiceGroupApp.DiskService.HandleDiskAlert(alert.Labels["instance"])
+		}
+		if alert.Status == "firing" && alert.Labels["alertname"] == "PodNotRunning" {
+			pod := alert.Labels["pod"]
+			namespace := alert.Labels["namespace"]
+			log.Printf("收到 PodNotRunning 告警, 重启 Pod %s/%s\n", namespace, pod)
+			go service.ServiceGroupApp.K8sService.DeletePod(namespace, pod)
 		}
 	}
 

@@ -52,8 +52,32 @@ go build -o prometheus-webhook main.go
 ```
 
 ### 4. 发送测试请求
+- 发起磁盘使用率告警：
 ```bash
 curl -XPOST http://localhost:8080/webhook -d '{"alerts":[{"status":"firing","labels":{"alertname":"NodeDiskUsageHigh","instance":"192.168.136.88:9100"},"annotations":{"summary":"Disk usage high"}}]}'
+```
+- 发起pod异常告警：
+```bash
+curl -XPOST http://localhost:8080/webhook -d '{
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "PodNotRunning",
+        "namespace": "test",
+        "pod": "nginx-6d98f5ffb4-kxbld"
+      }
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "PodNotRunning",
+        "namespace": "test",
+        "pod": "hotrod-5ccff444b7-54jbf"
+      }
+    }
+  ]
+}'
 ```
 
 ## Docker 打包
@@ -130,7 +154,7 @@ spec:
 ```
 
 ### 2. 配置 RBAC 权限
-
+- 给予 `default` ServiceAccount 权限：给予 `job-creator` 角色，允许创建、获取、列出、监视、删除 Job。webhook创建job时使用
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -182,13 +206,64 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
+- 给予 `default` ServiceAccount 权限：给予 `pod-manager` 角色，允许获取、列出、删除 Pod。webhook删除pod时使用
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: test
+  name: pod-manager
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "delete"]
 
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: test
+  name: pod-manager-binding
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: test
+roleRef:
+  kind: Role
+  name: pod-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-manager-global
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-manager-global-binding
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: test
+roleRef:
+  kind: ClusterRole
+  name: pod-manager-global
+  apiGroup: rbac.authorization.k8s.io
+```
 
 ## 使用说明
 
-- 当 Prometheus 触发 `NodeDiskUsageHigh` 告警时，Alertmanager 会调用该 Webhook。
-- Webhook 服务会创建一个 Job，在目标节点通过 SSH 清理日志目录和容器镜像。
+- 当 Prometheus 触发 `NodeDiskUsageHigh`,`PodNotRunning` 告警时，Alertmanager 会调用该 Webhook。
+- Webhook 服务会创建一个 Job，在目标节点通过 SSH 清理日志目录。收到pod异常告警时，Webhook会删除pod。
 - 成功的 Job **30 秒后自动清理**，失败的 Job 会保留（方便排查）。
+
 
 ## TODO / 改进
 

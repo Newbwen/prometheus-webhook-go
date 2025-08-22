@@ -5,10 +5,12 @@ import (
 	"log"
 
 	"github.com/Newbwen/prometheus-webhook-go/router"
+	"github.com/Newbwen/prometheus-webhook-go/service"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	service.Init()
 	r := gin.Default()
 	router.RouterGroupApp.Init(r)
 
