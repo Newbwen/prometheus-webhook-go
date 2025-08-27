@@ -13,6 +13,10 @@ import (
 
 type WebhookApi struct{}
 
+func (a *WebhookApi) HealthzCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 func (a *WebhookApi) HandleWebhook(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
