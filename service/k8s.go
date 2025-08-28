@@ -13,7 +13,7 @@ import (
 )
 
 type K8sService struct {
-	Clientset *kubernetes.Clientset
+	Clientset kubernetes.Interface
 }
 
 // 初始化k8s客户端
@@ -80,7 +80,7 @@ func (s *K8sService) CreateK8sJob(nodeIP, jobName string) error {
 	return err
 }
 
-func (s *K8sService) findNodeNameByIP(clientset *kubernetes.Clientset, ip string) (string, error) {
+func (s *K8sService) findNodeNameByIP(clientset kubernetes.Interface, ip string) (string, error) {
 	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return "", err
