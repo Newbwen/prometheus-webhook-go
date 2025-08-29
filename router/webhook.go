@@ -10,5 +10,6 @@ func InitWebhookRouter(Router *gin.RouterGroup) {
 	{
 		webhookRouter.POST("/webhook", v1.ApiGroupApp.WebhookApi.HandleWebhook)
 		webhookRouter.GET("/health", v1.ApiGroupApp.WebhookApi.HealthzCheck)
+		webhookRouter.POST("/remsg", v1.ApiGroupApp.ReMessage)
 	}
 }

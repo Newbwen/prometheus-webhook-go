@@ -10,4 +10,5 @@ var ServiceGroupApp = new(ServiceGroup)
 func Init() {
 	//初始化k8s
 	ServiceGroupApp.K8sService = NewK8sService()
+
 }

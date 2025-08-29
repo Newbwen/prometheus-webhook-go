@@ -26,6 +26,7 @@ func NewK8sService() *K8sService {
 	if err != nil {
 		panic(fmt.Errorf("failed to create k8s clientset: %v", err))
 	}
+
 	return &K8sService{Clientset: clientset}
 }
 
@@ -54,13 +55,15 @@ func (s *K8sService) CreateK8sJob(nodeIP, jobName string) error {
 					Containers: []corev1.Container{{
 						Name:    "cleaner",
 						Image:   "docker.io/library/ssh-client:v1.0",
-						Command: []string{"sh", "-c"},
-						Args: []string{
-							fmt.Sprintf(`ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa root@%s "rm -rf /var/log/app/*"`, nodeIP),
-						},
+						Command: []string{"sh", "/app/clean.sh"},
+						Args:    []string{nodeIP},
 						VolumeMounts: []corev1.VolumeMount{{
 							Name:      "ssh-key",
 							MountPath: "/root/.ssh",
+							ReadOnly:  true,
+						}, {
+							Name:      "clean-script",
+							MountPath: "/app",
 							ReadOnly:  true,
 						}},
 					}},
@@ -69,6 +72,19 @@ func (s *K8sService) CreateK8sJob(nodeIP, jobName string) error {
 						VolumeSource: corev1.VolumeSource{
 							HostPath: &corev1.HostPathVolumeSource{
 								Path: "/root/.ssh",
+							},
+						},
+					}, {
+						Name: "clean-script",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "clean-script",
+								},
+								DefaultMode: func() *int32 {
+									m := int32(0755) // 可执行权限
+									return &m
+								}(),
 							},
 						},
 					}},

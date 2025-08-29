@@ -17,6 +17,17 @@ func (a *WebhookApi) HealthzCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
+// 接收返回的信息
+func (a *WebhookApi) ReMessage(c *gin.Context) {
+	var reMessage map[string]interface{}
+	if err := c.ShouldBindJSON(&reMessage); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println("脚本执行成功，删除文件...", reMessage["message"])
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 func (a *WebhookApi) HandleWebhook(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
