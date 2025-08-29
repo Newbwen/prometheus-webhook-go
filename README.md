@@ -258,16 +258,31 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ```
 
+### 3.部署configmap
+```
+#清理脚本
+#!/bin/sh
+NODE_IP=$1
+
+ssh -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
+    -i /root/.ssh/id_rsa root@$NODE_IP << 'EOF'
+rm -rf /var/log/app/*
+
+curl -X POST 192.168.136.88:6885/remsg -H "Content-Type: application/json" \
+    --data '{"message":"应用日志清理完成!"}' \
+EOF
+#创建configmap
+kubectl create configmap clean-script   --from-file=clean.sh
+```
+
 ## 使用说明
 
 - 当 Prometheus 触发 `NodeDiskUsageHigh`,`PodNotRunning` 告警时，Alertmanager 会调用该 Webhook。
 - Webhook 服务会创建一个 Job，在目标节点通过 SSH 清理日志目录。收到pod异常告警时，Webhook会删除pod。
 - 成功的 Job **30 秒后自动清理**，失败的 Job 会保留（方便排查）。
+- prometheus-webhook会创建在test命名空间下。若是devops或者其他，则需要修改rbac权限
+- shell脚本会post临时提交到NodePort，若是改为ingress需要修改其配置
 
 
-## TODO / 改进
-
-- 支持自定义清理命令（通过 ConfigMap）。
-- 将 Job 失败信息推送到告警系统。
-- 使用 Secret 挂载 SSH 私钥，而不是 `HostPath`。
 
